@@ -10,8 +10,8 @@ except:
   print("No vim module available outside vim")
   pass
 
-
 import openai
+
 
 MAX_SUPPORTED_INPUT_LENGTH = 4096
 USE_STREAM_FEATURE = True
@@ -20,9 +20,9 @@ MAX_TOKENS_DEFAULT = 64
 CONFIG_DIR = os.getenv('XDG_CONFIG_HOME', os.path.expanduser('~/.config'))
 API_KEYS_LOCATION = os.path.join(CONFIG_DIR, 'openaiapirc')
 
+
 def create_template_ini_file():
-    """
-    If the ini file does not exist create it and add the organization_id and
+    """If the ini file does not exist create it and add the organization_id and
     secret_key
     """
     if not os.path.isfile(API_KEYS_LOCATION):
@@ -40,8 +40,7 @@ def create_template_ini_file():
 
 
 def initialize_openai_api():
-    """
-    Initialize the OpenAI API
+    """Initialize the OpenAI API.
     """
     # Check if file at API_KEYS_LOCATION exists
     create_template_ini_file()
@@ -52,19 +51,45 @@ def initialize_openai_api():
     openai.api_key = config['openai']['secret_key'].strip('"').strip("'")
 
 
-def complete_input_max_length(input_prompt, max_input_length=MAX_SUPPORTED_INPUT_LENGTH, stop=None, max_tokens=64):
+def complete_input_max_length(
+    input_prompt,
+    engine='code-davinci-002',
+    max_input_length=MAX_SUPPORTED_INPUT_LENGTH,
+    stop=None,
+    max_tokens=64,
+):
     input_prompt = input_prompt[-max_input_length:]
-    response = openai.Completion.create(engine='code-davinci-001', prompt=input_prompt, best_of=1, temperature=0.5, max_tokens=max_tokens, stream=USE_STREAM_FEATURE, stop=stop)
-    return response
+    return openai.Completion.create(
+        engine=engine,
+        prompt=input_prompt,
+        best_of=1,
+        temperature=0.7,
+        max_tokens=max_tokens,
+        stream=USE_STREAM_FEATURE,
+        stop=stop,
+    )
 
-def complete_input(input_prompt, stop, max_tokens):
+
+def complete_input(input_prompt, engine, stop, max_tokens):
     try:
-        response = complete_input_max_length(input_prompt, int(2.5 * MAX_SUPPORTED_INPUT_LENGTH), stop=stop, max_tokens=max_tokens)
+        response = complete_input_max_length(
+            input_prompt,
+            engine,
+            int(2.5 * MAX_SUPPORTED_INPUT_LENGTH),
+            stop=stop,
+            max_tokens=max_tokens,
+        )
     except openai.error.InvalidRequestError:
-        response = complete_input_max_length(input_prompt, MAX_SUPPORTED_INPUT_LENGTH, stop=stop, max_tokens=max_tokens)
+        response = complete_input_max_length(
+            input_prompt,
+            engine,
+            MAX_SUPPORTED_INPUT_LENGTH,
+            stop=stop,
+            max_tokens=max_tokens,
+        )
         print('Using shorter input.')
-
     return response
+
 
 def get_max_tokens():
     max_tokens = None
@@ -72,11 +97,10 @@ def get_max_tokens():
         max_tokens_str = vim.eval('a:max_tokens')
         if max_tokens_str:
             max_tokens = int(max_tokens_str)
-
     if not max_tokens:
         max_tokens = MAX_TOKENS_DEFAULT
-
     return max_tokens
+
 
 def delete_current_line_if_empty_and_stop_below_matches_stop_string(stop):
     vim_buf = vim.current.buffer
@@ -86,8 +110,9 @@ def delete_current_line_if_empty_and_stop_below_matches_stop_string(stop):
     # Get next none empty line using get_first_line_below_cursor_with_text
     next_line = get_first_line_below_cursor_with_text()
     if next_line == stop:
-        if len(vim_buf[row-1]) == 0:
-            vim_buf[row-1:row] = []
+        if len(vim_buf[row - 1]) == 0:
+            vim_buf[(row - 1):row] = []
+
 
 def delete_empty_inserted_lines_if_stop_matches_stop_string(stop):
     vim_buf = vim.current.buffer
@@ -101,12 +126,13 @@ def delete_empty_inserted_lines_if_stop_matches_stop_string(stop):
             if row >= len(vim_buf):
                 break
             # Print the number of lines.
-            if len(vim_buf[row-1]) == 0:
-                vim_buf[row-1:row] = []
+            if len(vim_buf[row - 1]) == 0:
+                vim_buf[(row - 1):row] = []
             else:
                 break
-        if len(vim_buf[row-1]) == 0:
-            vim_buf[row-1:row] = []
+        if len(vim_buf[row - 1]) == 0:
+            vim_buf[(row - 1):row] = []
+
 
 def get_first_line_below_cursor_with_text():
     vim_buf = vim.current.buffer
@@ -119,7 +145,7 @@ def get_first_line_below_cursor_with_text():
         row += 1
 
 
-def create_completion(stop=None): 
+def create_completion(engine='code-davinci-002', stop=None): 
     try:
         from AUTH import ORGANIZATION_ID, SECRET_KEY
 
@@ -128,17 +154,25 @@ def create_completion(stop=None):
     except ModuleNotFoundError:
         initialize_openai_api()
     max_tokens = get_max_tokens()
+
     vim_buf = vim.current.buffer
     input_prompt = '\n'.join(vim_buf[:])
     
     row, col = vim.current.window.cursor
     input_prompt = '\n'.join(vim_buf[row:])
-    input_prompt += '\n'.join(vim_buf[:row-1])
-    input_prompt += '\n' + vim_buf[row-1][:col]
+    input_prompt += '\n'.join(vim_buf[:row - 1])
+    input_prompt += '\n' + vim_buf[row - 1][:col]
     if not stop:
         stop = get_first_line_below_cursor_with_text()
-    response = complete_input(input_prompt, stop=stop, max_tokens=max_tokens)
+
+    response = complete_input(
+        input_prompt,
+        engine=engine,
+        stop=stop,
+        max_tokens=max_tokens,
+    )
     write_response(response, stop=stop)
+
 
 def write_response(response, stop):
     vim_buf = vim.current.buffer
@@ -148,7 +182,9 @@ def write_response(response, stop):
        # Check if the user pressed any key.
         if vim_win.cursor[0] > len(vim_buf):
             return
-        if vim_win.cursor[0] == len(vim_buf) and vim_win.cursor[1] > len(vim_buf[-1]):
+        if (vim_win.cursor[0] == len(vim_buf)
+            and vim_win.cursor[1] > len(vim_buf[-1])
+        ):
             return
         if vim.eval('getchar(0)') != '0':
             return
@@ -162,7 +198,7 @@ def write_response(response, stop):
             if stop == '\n':
                 completion += '\n'
         row, col = vim.current.window.cursor
-        current_line = vim.current.buffer[row-1]
+        current_line = vim.current.buffer[row - 1]
         new_line = current_line[:col] + completion + current_line[col:]
         if not USE_STREAM_FEATURE:
             if new_line == '':
@@ -174,10 +210,10 @@ def write_response(response, stop):
         if len(vim_buf) == row:
             vim_buf.append('')
                
-        vim_buf[row-1] = None
+        vim_buf[row - 1] = None
         cursor_pos_base = tuple(vim_win.cursor)
         for row_i in range(len(new_lines)):
-            vim.current.buffer[row-1:row-1] = [new_lines[row_i]]
+            vim.current.buffer[(row - 1):(row - 1)] = [new_lines[row_i]]
 
         if new_line == '':
             cursor_target_col = 0
@@ -197,5 +233,3 @@ def write_response(response, stop):
                 # delete_current_line_if_empty_and_stop_below_matches_stop_string(stop)
                 delete_empty_inserted_lines_if_stop_matches_stop_string(stop)
                 break
-
-

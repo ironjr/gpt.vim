@@ -21,21 +21,30 @@ import plugin
 EOF
 
 
-
-function! CreateCompletion(max_tokens)
-  python3 plugin.create_completion()
+function! CodeCompletion(max_tokens)
+  python3 plugin.create_completion(engine='code-davinci-002')
 endfunction
 
-function! CreateCompletionLine()
-  python3 plugin.create_completion(stop='\n')
+function! CodeCompletionLine()
+  python3 plugin.create_completion(engine='code-davinci-002', stop='\n')
+endfunction
+
+function! TextCompletion(max_tokens)
+  python3 plugin.create_completion(engine='text-davinci-002')
+endfunction
+
+function! TextCompletionLine()
+  python3 plugin.create_completion(engine='text-davinci-002', stop='\n')
 endfunction
 
 
+command! -nargs=? CodeCompletion call CodeCompletion(<q-args>)
+command! -nargs=0 CodeCompletionLine call CodeCompletionLine()
+command! -nargs=? TextCompletion call TextCompletion(<q-args>)
+command! -nargs=0 TextCompletionLine call TextCompletionLine()
 
-command! -nargs=? CreateCompletion call CreateCompletion(<q-args>)
-command! -nargs=0 CreateCompletionLine call CreateCompletionLine()
-
-map <Leader>co :CreateCompletion<CR>
+map <Leader>co :CodeCompletion 2000<CR>
+map <Leader>to :TextCompletion 2000<CR>
 
 
 let g:sample_python_plugin_loaded = 1
