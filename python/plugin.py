@@ -190,7 +190,10 @@ def write_response(response, stop):
             return
 
         if USE_STREAM_FEATURE:
-            single_response = next(response)
+            try:
+                single_response = next(response)
+            except StopIteration:
+                break
         else:
             single_response = response
         completion = single_response['choices'][0]['text']

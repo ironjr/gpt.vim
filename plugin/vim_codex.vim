@@ -30,11 +30,11 @@ function! CodeCompletionLine()
 endfunction
 
 function! TextCompletion(max_tokens)
-  python3 plugin.create_completion(engine='text-davinci-002')
+  python3 plugin.create_completion(engine='text-davinci-003')
 endfunction
 
 function! TextCompletionLine()
-  python3 plugin.create_completion(engine='text-davinci-002', stop='\n')
+  python3 plugin.create_completion(engine='text-davinci-003', stop='\n')
 endfunction
 
 
@@ -45,6 +45,8 @@ command! -nargs=0 TextCompletionLine call TextCompletionLine()
 
 map <Leader>co :CodeCompletion 2000<CR>
 map <Leader>to :TextCompletion 2000<CR>
+map <Leader>cl :CodeCompletionLine<CR>
+map <Leader>tl :TextCompletionLine<CR>
 
 
 let g:sample_python_plugin_loaded = 1
